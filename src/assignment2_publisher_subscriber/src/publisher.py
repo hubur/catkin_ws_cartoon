@@ -6,8 +6,8 @@ from rospy.timer import Rate
 
 rospy.init_node("basic_pub")
 
-steering_publisher = rospy.Publisher("/actuators/steering", SteeringCommand)
-speed_publisher = rospy.Publisher("/actuators/speed/", SpeedCommand)
+steering_publisher = rospy.Publisher("/actuators/steering", SteeringCommand, queue_size=1)
+speed_publisher = rospy.Publisher("/actuators/speed/", SpeedCommand, queue_size=1)
 
 rate = Rate(hz=100)
 while not rospy.is_shutdown():

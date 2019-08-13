@@ -1,13 +1,10 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import rospy
 from autominy_msgs.msg import Speed
 
-def callback(raw_msg):
-    print raw_msg
-
-
 rospy.init_node("basic_sub")
 
-rospy.Subscriber("/sensors/speed", Speed, callback)
+rospy.Subscriber("/sensors/speed", Speed, print)
 
 rospy.spin()
