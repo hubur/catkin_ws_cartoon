@@ -88,6 +88,12 @@ def image_callback(image_message):
     retval, rvec, tvec = cv2.solvePnP(
         object_points, image_points, camera_matrix, dist_coeffs
     )
+    rotation_matrix, _ = cv2.Rodrigues(rvec)
+
+    H = np.concatenate((rotation_matrix, tvec), axis=1)
+    print(H.shape)
+    H = np.concatenate((H, np.array([0, 0, 0, 1]).reshape(1,4)))
+    inverse = np.linalg.inv(H)
     print(
         "\nimage points",
         image_points,
@@ -97,9 +103,14 @@ def image_callback(image_message):
         rvec,
         "\ntvec",
         tvec,
+        "\nR",
+        rotation_matrix,
+        "\nH",
+        H,
+        "\ninverse",
+        inverse,
         sep="\n",
     )
-    # print(retval, rvec, tvec)
     for p in image_points_list:
         thresh[p[0] - 1 : p[0] + 1, p[1] - 1 : p[1] + 1] = 0
     binarized_img_publisher.publish(
