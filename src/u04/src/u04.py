@@ -7,98 +7,57 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import numpy as np
 
-bridge = CvBridge()
 
-tl_c = [110, 130, 250, 280]  # oben links
-tr_c = [100, 120, 410, 440]  # oben rechts
-ml_c = [160, 190, 230, 260]  # mitte links
-mr_c = [140, 160, 430, 460]  # mitte rechts
-bl_c = [230, 260, 190, 220]  # unten links
-br_c = [190, 250, 470, 550]  # unten rechts
-mask_ranges = (bl_c, br_c, ml_c, mr_c, tl_c, tr_c)
-
-mask = np.zeros((480, 640), dtype="uint8")
-tl = mask[tl_c[0] : tl_c[1], tl_c[2] : tl_c[3]]  # oben links
-tr = mask[tr_c[0] : tr_c[1], tr_c[2] : tr_c[3]]  # oben rechts
-ml = mask[ml_c[0] : ml_c[1], ml_c[2] : ml_c[3]]  # mitte links
-mr = mask[mr_c[0] : mr_c[1], mr_c[2] : mr_c[3]]  # mitte rechts
-bl = mask[bl_c[0] : bl_c[1], bl_c[2] : bl_c[3]]  # unten links
-br = mask[br_c[0] : br_c[1], br_c[2] : br_c[3]]  # unten rechts
-
-mask_parts = (bl, br, ml, mr, tl, tr)
-for mask_part in mask_parts:
-    mask_part[:, :] = 1
-
-# k1, k2, t1, t2, k3 = (0.0, 0.0, 0.0, 0.0, 0.0)
-dist_coeffs = np.zeros(5).reshape((5, 1))
-# fx, _, cx, _, fy, cy, _, _, _ = (
-#    383.7944641113281,
-#    0.0,
-#    322.3056945800781,
-#    0.0,
-#    383.7944641113281,
-#    241.67051696777344,
-#    0.0,
-#    0.0,
-#    1.0,
-# )
-
-camera_matrix = np.array(
-    [
-        383.7944641113281,
-        0.0,
-        322.3056945800781,
-        0.0,
-        383.7944641113281,
-        241.67051696777344,
-        0.0,
-        0.0,
-        1.0,
-    ]
-).reshape((3, 3))
-
-print(camera_matrix)
-print(dist_coeffs)
-# exit()
-
-object_points = np.asarray(
-    [
-        [0.5, 0.2, 0],
-        [0.5, -0.2, 0],
-        [0.8, 0.2, 0],
-        [0.8, -0.2, 0],
-        [1.1, 0.2, 0],
-        [1.1, -0.2, 0],
-    ]
-)
+def get_mask_ranges():
+    tl = [110, 130, 250, 280]  # oben links
+    tr = [100, 120, 410, 440]  # oben rechts
+    ml = [160, 190, 230, 260]  # mitte links
+    mr = [140, 160, 430, 460]  # mitte rechts
+    bl = [230, 260, 190, 220]  # unten links
+    br = [190, 250, 470, 550]  # unten rechts
+    return bl, br, ml, mr, tl, tr
 
 
-def image_callback(image_message):
-    cv_image = bridge.imgmsg_to_cv2(image_message, desired_encoding="mono8")
-    _, thresh = cv2.threshold(cv_image, 200, 255, cv2.THRESH_BINARY)
-    thresh[mask == 0] = 0
-    image_points_list = []
+def get_mask(mask_ranges):
+    mask = np.zeros((480, 640), dtype="uint8")
     for r in mask_ranges:
-        coordinates = np.nonzero(thresh[r[0] : r[1], r[2] : r[3]] != 0)
-        ys, xs = coordinates
+        mask[r[0] : r[1], r[2] : r[3]] = 1
+    return mask
+
+
+def calculate_image_points(image_message, publish_thresh):
+    cv_image = BRIDGE.imgmsg_to_cv2(image_message, desired_encoding="mono8")
+    _, thresh = cv2.threshold(cv_image, 200, 255, cv2.THRESH_BINARY)
+    thresh[MASK == 0] = 0
+    image_points_list = []
+    for r in MASK_RANGES:
+        ys, xs = np.nonzero(thresh[r[0] : r[1], r[2] : r[3]] != 0)
         y = r[0] + int(math.floor(np.mean(ys)))
         x = r[2] + int(math.floor(np.mean(xs)))
         image_points_list.append((y, x))
+    if publish_thresh:
+        for p in image_points_list:
+            thresh[p[0] - 1 : p[0] + 1, p[1] - 1 : p[1] + 1] = 0
+        binarized_img_publisher.publish(
+            BRIDGE.cv2_to_imgmsg(thresh, encoding="passthrough")
+        )
+    return image_points_list
+
+
+def image_callback(image_message):
+    image_points_list = calculate_image_points(image_message, publish_thresh=True)
     image_points = np.asarray(image_points_list, dtype="float32")
-    retval, rvec, tvec = cv2.solvePnP(
-        object_points, image_points, camera_matrix, dist_coeffs
+    _, rvec, tvec = cv2.solvePnP(
+        OBJECT_POINTS, image_points, CAMERA_MATRIX, DIST_COEFFS
     )
     rotation_matrix, _ = cv2.Rodrigues(rvec)
 
     H = np.concatenate((rotation_matrix, tvec), axis=1)
-    print(H.shape)
-    H = np.concatenate((H, np.array([0, 0, 0, 1]).reshape(1,4)))
+    H = np.concatenate((H, np.array([0, 0, 0, 1]).reshape(1, 4)))
     inverse = np.linalg.inv(H)
     print(
         "\nimage points",
         image_points,
-        "\nretval",
-        retval,
         "\nrvec",
         rvec,
         "\ntvec",
@@ -111,17 +70,38 @@ def image_callback(image_message):
         inverse,
         sep="\n",
     )
-    for p in image_points_list:
-        thresh[p[0] - 1 : p[0] + 1, p[1] - 1 : p[1] + 1] = 0
-    binarized_img_publisher.publish(
-        bridge.cv2_to_imgmsg(thresh, encoding="passthrough")
-    )
 
+
+MASK_RANGES = get_mask_ranges()
+MASK = get_mask(MASK_RANGES)
+BRIDGE = CvBridge()
+DIST_COEFFS = np.zeros(5).reshape((5, 1))
+CAMERA_MATRIX = np.array(
+    [
+        383.7944641113281,
+        0.0,
+        322.3056945800781,
+        0.0,
+        383.7944641113281,
+        241.67051696777344,
+        0.0,
+        0.0,
+        1.0,
+    ]
+).reshape((3, 3))
+OBJECT_POINTS = np.asarray(
+    [
+        [0.5, 0.2, 0],
+        [0.5, -0.2, 0],
+        [0.8, 0.2, 0],
+        [0.8, -0.2, 0],
+        [1.1, 0.2, 0],
+        [1.1, -0.2, 0],
+    ]
+)
 
 rospy.init_node("image_node")
 
-# R = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-# P = [383.7944641113281, 0.0, 322.3056945800781, 0.0, 0.0, 383.7944641113281, 241.67051696777344, 0 .0, 0.0, 0.0, 1.0, 0.0]
 img_subscriber = rospy.Subscriber(
     "/sensors/camera/infra1/image_rect_raw", Image, image_callback, queue_size=10
 )
