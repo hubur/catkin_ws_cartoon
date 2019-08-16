@@ -55,13 +55,19 @@ def image_callback(image_message):
     H = np.concatenate((rotation_matrix, tvec), axis=1)
     H = np.concatenate((H, np.array([0, 0, 0, 1]).reshape(1, 4)))
     inverse = np.linalg.inv(H)
+    projected_points, _ = cv2.projectPoints(
+        OBJECT_POINTS, rvec, tvec, CAMERA_MATRIX, DIST_COEFFS
+    )
     print(
         "\nimage points",
         image_points,
+        "\nprojected points",
+        projected_points,
         "\nrvec",
         rvec,
         "\ntvec",
         tvec,
+        np.linalg.norm(tvec),
         "\nR",
         rotation_matrix,
         "\nH",
