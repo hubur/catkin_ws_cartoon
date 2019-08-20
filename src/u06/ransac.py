@@ -8,6 +8,7 @@ import cv2
 
 class LineModel(object):
     def __init__(self, inliers=None):
+        self.outliers = []
         if not inliers:
             self.x1 = self.y1 = self.x2 = self.y2 = self.a = self.b = self.c = 0
             self.error = sys.maxsize
@@ -40,23 +41,23 @@ def _distance(point, line):
     return abs(line.a * x + line.b * y + line.c) / math.sqrt(line.a ** 2 + line.b ** 2)
 
 
-def _random_point(xs, ys, num_points):
-    i = random.randint(0, num_points - 1)
-    return (xs[i], ys[i])
+def _random_point(points):
+    i = random.randint(0, len(points) - 1)
+    return points[i]
 
 
-def ransac(xs, ys, max_iterations, threshold, min_inliers):
-    assert len(xs) == len(ys)
-
+def ransac(points, max_iterations, threshold, min_inliers):
     best_model = LineModel()
     for i in range(max_iterations):
-        model = LineModel([_random_point(xs, ys, len(xs)) for _ in range(2)])
+        model = LineModel([_random_point(points) for _ in range(2)])
         model.sanity_check()
-        for p in zip(xs, ys):
+        for p in points:
             d = _distance(p, model)
             if d < threshold:
                 model.inliers.append(p)
                 model.error += d
+            else:
+                model.outliers.append(p)
         if len(model.inliers) > min_inliers and model.error < best_model.error:
             best_model = model
 

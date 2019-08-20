@@ -24,19 +24,22 @@ if __name__ == "__main__":
     ys, xs = np.nonzero(img)
 
     print(len(ys))
-    model = ransac.ransac(
-        xs=xs, ys=ys, max_iterations=1000, threshold=16, min_inliers=len(xs) / 10
-    )
-    print(model)
-    print(len(model.inliers))
-    # print(model.inliers)
+    outliers = list(zip(xs, ys))
+    for i in range(3):
+        model = ransac.ransac(
+            outliers, max_iterations=150, threshold=16, min_inliers=len(xs) / 10
+        )
+        print(model)
+        print(len(model.inliers))
+        # print(model.inliers)
 
-    plt.scatter(xs, ys, marker=".")
-    plt.scatter(
-        [p[0] for p in model.inliers], [p[1] for p in model.inliers], marker="x"
-    )
-    plt.plot([model.x1, model.x2], [model.y1, model.y2], "r")
+        plt.scatter(xs, ys, marker=".")
+        plt.scatter(
+            [p[0] for p in model.inliers], [p[1] for p in model.inliers], marker="x"
+        )
+        plt.plot([model.x1, model.x2], [model.y1, model.y2], "r")
 
-    ax = plt.gca()
-    ax.set_ylim(ax.get_ylim()[::-1])
+        ax = plt.gca()
+        ax.set_ylim(ax.get_ylim()[::-1])
+        outliers = model.outliers
     plt.show()
