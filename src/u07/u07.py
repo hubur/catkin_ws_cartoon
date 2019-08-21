@@ -44,13 +44,13 @@ def integrate_error():
 def steer(target_yaw):
     current = buffer[-1]
     d = target_yaw - current.yaw
-    k_p = 16 / math.pi
+    k_p = 12 / math.pi
     k_d = 10 ** 8
-    k_i = 50 / len(buffer)
+    k_i = 40 / len(buffer)
     rsd = rotation_speed_diff()
     ie = integrate_error()
-    u = k_p * d + k_d * rsd + k_i * ie
-    print(d, rsd, ie)
+    u = 0.3 * (k_p * d + k_d * rsd + k_i * ie)
+    print(d, rsd, ie, u)
     steering_publisher.publish(Header(), u)
 
 
