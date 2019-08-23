@@ -27,21 +27,25 @@ def get_closest_point(point, points, x_spline, y_spline, max_u):
     d1 = d[closest_two[0]]
     d2 = d[closest_two[1]]
     last_distance = sys.maxsize
+    epsilon = 10 ** (-3)
     while True:
         u_left = min(u1, u2) + abs(u1 - u2) / 2
         u_right = (u_left + max_u / 2) % max_u
-        print("u", u_left, u_right, max_u)
         x_left = x_spline(u_left)
         y_left = y_spline(u_left)
         d_left = distance(point, (x_left, y_left))
         x_right = x_spline(u_right)
         y_right = y_spline(u_right)
         d_right = distance(point, (x_right, y_right))
-
-        print(d_left, d_right, last_distance)
-        # plt.scatter((x_left,), (y_left), marker="o")
-        # plt.scatter((x_right,), (y_right), marker="o")
-        epsilon = 0.00000000001
+        print(f"u left {u_left} right {u_right} max {max_u}")
+        print(f"d left {d_left} right {d_right}")
+        print(f"d1 {d1} d2 {d2}")
+        print(f"x left {x_left} right {x_right}")
+        print(f"y left {y_left} right {y_right}")
+        print(f"last_distance {last_distance}")
+        print("...")
+        plt.scatter((x_left,), (y_left), marker="o")
+        plt.scatter((x_right,), (y_right), marker="o")
         if d_left < d_right:
             if d1 < d2:
                 u2 = u_left
@@ -49,7 +53,7 @@ def get_closest_point(point, points, x_spline, y_spline, max_u):
             else:
                 u1 = u_left
                 d1 = d_left
-            if last_distance - d_left < epsilon:
+            if abs(last_distance - d_left) < epsilon:
                 return x_left, y_left
             last_distance = d_left
         else:
@@ -59,7 +63,7 @@ def get_closest_point(point, points, x_spline, y_spline, max_u):
             else:
                 u1 = u_right
                 d1 = d_right
-            if last_distance - d_right < epsilon:
+            if abs(last_distance - d_right) < epsilon:
                 return x_right, y_right
             last_distance = d_right
 
@@ -98,7 +102,7 @@ def main():
         max_u = np.max(lane[:, 0])
         min_u = np.min(lane[:, 0])
         print("max min", max_u, min_u)
-        point = [1, 1]
+        point = [3, 2]
         x, y = get_closest_point(point, points, x_spline, y_spline, max_u)
         plt.plot((point[0], x), (point[1], y))
         plt.plot(x_spline(lane_u), y_spline(lane_u))
