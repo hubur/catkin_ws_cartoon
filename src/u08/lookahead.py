@@ -1,6 +1,5 @@
 import numpy as np
 import sys
-import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
 
 LOOK_AHEAD_DISTANCE = 1
@@ -39,15 +38,6 @@ def get_closest_point(point, points, x_spline, y_spline, max_u):
         x_right = x_spline(u_right)
         y_right = y_spline(u_right)
         d_right = distance(point, (x_right, y_right))
-        # print(f"u left {u_left} right {u_right} max {max_u}")
-        # print(f"d left {d_left} right {d_right}")
-        # print(f"d1 {d1} d2 {d2}")
-        # print(f"x left {x_left} right {x_right}")
-        # print(f"y left {y_left} right {y_right}")
-        # print(f"last_distance {last_distance}")
-        # print("...")
-        # plt.scatter((x_left,), (y_left), marker="o")
-        # plt.scatter((x_right,), (y_right), marker="o")
         if d_left < d_right:
             if d1 < d2:
                 u2 = u_left
@@ -70,9 +60,9 @@ def get_closest_point(point, points, x_spline, y_spline, max_u):
             last_distance = d_right
 
 
-def main():
-    lane1 = np.load("/Users/mh/Downloads/lane1.npy")
-    lane2 = np.load("/Users/mh/Downloads/lane2.npy")
+def main(car_position= [6, 4], do_plots=False):
+    lane1 = np.load("lane1.npy")
+    lane2 = np.load("lane2.npy")
     points1 = lane1[
         [
             0,
@@ -97,6 +87,9 @@ def main():
     points2 = lane2[
         [0, 50, 100, 150, 209, 400, 600, 738, 800, 850, 900, 949, 1150, 1300, 1476], :
     ]
+    splines = []
+    closest_points = []
+    carrot_points = []
     for i, (lane, points) in enumerate(((lane1, points1), (lane2, points2))):
         print("lane", i + 1)
         x_spline, y_spline = get_splines(points)
@@ -104,7 +97,6 @@ def main():
         max_u = np.max(lane[:, 0])
         min_u = np.min(lane[:, 0])
         print("max min", max_u, min_u)
-        car_position = [6, 4]
         x, y = get_closest_point(car_position, points, x_spline, y_spline, max_u)
         vec_lane_to_car = np.array([car_position[0] - x, car_position[1] - y])
         vec_to_carrot = rotate90(vec_lane_to_car) / np.linalg.norm(vec_lane_to_car)
@@ -113,12 +105,19 @@ def main():
         carrot_x, carrot_y = get_closest_point(
             next_to_carrot_point, points, x_spline, y_spline, max_u
         )
-        plt.scatter(carrot_x, carrot_y, marker="D")
-        plt.scatter(next_to_carrot_point[0], next_to_carrot_point[1], marker="x")
-        plt.plot((car_position[0], x), (car_position[1], y))
-        plt.plot(x_spline(lane_u), y_spline(lane_u))
-        # plt.scatter(points[:, 1], points[:, 2])
-    plt.show()
+        splines.append((x_spline(lane_u), y_spline(lane_u)))
+        closest_points.append((x,y))
+        carrot_points.append((carrot_x, carrot_y))
+        if do_plots:
+            import matplotlib.pyplot as plt
+            plt.scatter(carrot_x, carrot_y, marker="D")
+            plt.scatter(next_to_carrot_point[0], next_to_carrot_point[1], marker="x")
+            plt.plot((car_position[0], x), (car_position[1], y))
+            plt.plot(x_spline(lane_u), y_spline(lane_u))
+            # plt.scatter(points[:, 1], points[:, 2])
+    if do_plots:
+        plt.show()
+    return splines, closest_points, carrot_points
 
 
 ROTATION_MATRIX = np.array([[0, 1], [-1, 0]])
@@ -129,4 +128,4 @@ def rotate90(vec):
 
 
 if __name__ == "__main__":
-    main()
+    main(do_plots=True)
