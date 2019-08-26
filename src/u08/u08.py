@@ -45,42 +45,6 @@ def publish_point(x, y, marker_id, r=0, g=0, b=1):
     pub_line_min_dist.publish(marker)
 
 
-def mark_clicked_point(click):
-    print(click)
-    publish_point(click.point.x, click.point.y, marker_id=1)
-    return
-    marker = Marker()
-    marker.id = 1234
-    marker.header.frame_id = "map"
-    marker.type = marker.SPHERE
-    marker.action = marker.ADD
-
-    # marker scale
-    marker.scale.x = 0.3
-    marker.scale.y = 0.3
-    marker.scale.z = 0.3
-
-    # marker color
-    marker.color.a = 1.0
-    marker.color.r = 0.0
-    marker.color.g = 0.0
-    marker.color.b = 1.0
-
-    # marker orientaiton
-    marker.pose.orientation.x = 0.0
-    marker.pose.orientation.y = 0.0
-    marker.pose.orientation.z = 0.0
-    marker.pose.orientation.w = 1.0
-
-    # marker position
-    marker.pose.position.x = click.point.x
-    marker.pose.position.y = click.point.y
-    marker.pose.position.z = click.point.z
-
-    # Publish the Marker
-    pub_line_min_dist.publish(marker)
-
-
 def show_lanes(splines):
     for i, spline in enumerate(splines):
         marker = Marker()
@@ -118,7 +82,6 @@ def show_lanes(splines):
 
 
 def callback(click):
-    mark_clicked_point(click)
     splines, closest_points, carrot_points = lookahead.main(
         (click.point.x, click.point.y)
     )
